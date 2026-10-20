@@ -65,7 +65,3 @@ pip install pandas numpy matplotlib seaborn scikit-learn jupyter
 # put pdb_data_no_dups.csv and pdb_data_seq.csv in this folder
 jupyter notebook protein_classification.ipynb
 ```
-
-## Possible Improvements
-- PDB contains many near-identical sequences (for example, multiple chains of the same protein), so a random split can overestimate accuracy. A **sequence-identity-aware split** (e.g. clustering with CD-HIT or MMseqs2 first) would give a more realistic estimate.
-- Try other k values or combine several (k = 2–5), and compare with protein language-model embeddings (ESM).
