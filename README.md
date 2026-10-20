@@ -1,81 +1,71 @@
-# 🧬 Protein Classification with Machine Learning
+# 🧬 Protein Family Classification from Amino Acid Sequences
 
-Protein amino asit dizilimlerinden (sequence) proteinin hangi biyolojik aileye ait olduğunu tahmin eden bir makine öğrenmesi projesi.
+This project predicts **which biological family a protein belongs to** (hydrolase, transferase, immune-system protein, virus protein, …) using **only its amino acid sequence**. Sequences are treated like text: they are split into overlapping 3-mers ("words"), vectorized with TF-IDF, and classified with a linear SVM.
 
-## 📊 Veri Seti
+**85.5 % accuracy** (macro F1 0.86) on 10 classes and 37,671 held-out proteins.
 
-- **Kaynak:** [Kaggle - Protein Data Set (RCSB PDB)](https://www.kaggle.com/datasets/shahir/protein-data-set)
-- **Dosyalar:** `pdb_data_no_dups.csv` + `pdb_data_seq.csv` → `structureId` üzerinden birleştirildi
-- **Toplam Veri:** ~346.000 protein kaydı
-- **Analiz Edilen Veri:** ~188.000 kayıt (en yaygın 10 protein sınıfı)
+Project for the *Bioinformatics* course at Balıkesir University.
 
-> ⚠️ Veri dosyaları boyut nedeniyle repoya dahil edilmemiştir. Yukarıdaki Kaggle linkinden indirilebilir.
+## Dataset
 
-## 🎯 Hedef
+- **Source:** [Kaggle — Protein Data Set (RCSB PDB)](https://www.kaggle.com/datasets/shahir/protein-data-set)
+- Two files (`pdb_data_no_dups.csv` and `pdb_data_seq.csv`) joined on `structureId` → **346,325 records**
+- Filtered to `macromoleculeType == "Protein"`, records with missing values removed, and the **10 most common families** kept → **188,353 sequences**
 
-Proteinin `classification` sütunundaki biyolojik ailesini tahmin etmek:
+> The CSV files are not included because of their size. Download them from Kaggle and place them next to the notebook.
 
-| Sınıf | Açıklama |
+<p align="center">
+  <img src="docs/screenshots/class-distribution.png" alt="Class distribution" width="560">
+  <img src="docs/screenshots/sequence-length.png" alt="Sequence length distribution" width="380">
+</p>
+
+## Method
+
+```
+sequence:  AALKDQLIHNLLKE...
+3-mers:    AAL ALK LKD KDQ DQL QLI LIH ...      (tri-peptide "words")
+           │
+           ├─ CountVectorizer (top 5,000 3-mers)
+           ├─ TfidfTransformer
+           ├─ 80 / 20 train-test split (150,682 / 37,671)
+           └─ LinearSVC
+```
+
+Treating 3-mers as words captures local sequence motifs. TF-IDF down-weights 3-mers that are common in every protein. A linear SVM scales well to about 150k samples × 5k sparse features.
+
+## Results
+
+| Metric | Score |
 |---|---|
-| HYDROLASE | Hidrolaz enzimleri |
-| TRANSFERASE | Transferaz enzimleri |
-| OXIDOREDUCTASE | Oksidoredüktaz enzimleri |
-| IMMUNE SYSTEM | Bağışıklık sistemi proteinleri |
-| LYASE | Liyaz enzimleri |
-| HYDROLASE/HYDROLASE INHIBITOR | Hidrolaz inhibitörleri |
-| TRANSCRIPTION | Transkripsiyon faktörleri |
-| VIRAL PROTEIN | Viral proteinler |
-| TRANSPORT PROTEIN | Taşıyıcı proteinler |
-| VIRUS | Virüs proteinleri |
+| Accuracy | **85.47 %** |
+| Macro precision / recall / F1 | 0.87 / 0.86 / 0.86 |
 
-## ⚙️ Yöntem
+| Class | F1 | | Class | F1 |
+|---|---|---|---|---|
+| VIRUS | 0.96 | | TRANSFERASE | 0.84 |
+| IMMUNE SYSTEM | 0.92 | | HYDROLASE | 0.82 |
+| LYASE | 0.89 | | TRANSCRIPTION | 0.82 |
+| OXIDOREDUCTASE | 0.89 | | HYDROLASE / HYDROLASE INHIBITOR | 0.75 |
+| VIRAL PROTEIN | 0.87 | | | |
+| TRANSPORT PROTEIN | 0.85 | | | |
 
-### 1. Veri Ön İşleme
-- İki CSV dosyası `structureId` üzerinden birleştirildi
-- Eksik değerler temizlendi
-- Sadece protein türündeki kayıtlar filtrelendi
-- En yaygın 10 sınıf seçildi
+<p align="center">
+  <img src="docs/screenshots/confusion-matrix.png" alt="Confusion matrix" width="640">
+</p>
 
-### 2. Özellik Çıkarımı — K-mer Tekniği
-Protein dizilimleri **3'lü K-mer** (tri-peptide) yöntemiyle parçalandı:
+The weakest class is **HYDROLASE / HYDROLASE INHIBITOR**. It is mostly confused with plain **HYDROLASE**, which makes sense, since these PDB entries are complexes that contain the hydrolase itself. The most frequent remaining errors are between the large enzyme families (hydrolase, transferase, oxidoreductase).
 
-```
-AALKDQL... → AAL ALK LKD KDQ DQL ...
-```
+## Tech Stack
+Python · pandas · NumPy · scikit-learn · matplotlib · seaborn · Jupyter
 
-Bu sayede her protein, makine öğrenmesi modeline verilebilecek bir **kelime vektörüne** dönüştürüldü.
-
-### 3. Model — LinearSVC (TF-IDF + SVM)
-- `CountVectorizer` ile K-mer'ler sayısallaştırıldı
-- `TfidfTransformer` ile TF-IDF ağırlıkları hesaplandı
-- `LinearSVC` ile sınıflandırma yapıldı
-
-## 📈 Sonuçlar
-
-Model, 10 farklı protein sınıfını başarıyla ayırt edebilmektedir. Detaylı metrikler ve karmaşıklık matrisi (confusion matrix) notebook içinde yer almaktadır.
-
-## 🚀 Kurulum & Çalıştırma
+## Running
 
 ```bash
-# Gerekli kütüphaneleri yükle
 pip install pandas numpy matplotlib seaborn scikit-learn jupyter
-
-# Veri setini Kaggle'dan indir ve proje klasörüne koy:
-# - pdb_data_no_dups.csv
-# - pdb_data_seq.csv
-
-# Notebook'u çalıştır
+# put pdb_data_no_dups.csv and pdb_data_seq.csv in this folder
 jupyter notebook protein_classification.ipynb
 ```
 
-## 🛠️ Kullanılan Teknolojiler
-
-- **Python** — Ana programlama dili
-- **Pandas / NumPy** — Veri işleme
-- **Matplotlib / Seaborn** — Veri görselleştirme
-- **Scikit-learn** — Makine öğrenmesi (CountVectorizer, TfidfTransformer, LinearSVC)
-- **Jupyter Notebook** — Geliştirme ortamı
-
-## 👤 Yazar
-
-**Alper Saygın Etci**
+## Possible Improvements
+- PDB contains many near-identical sequences (for example, multiple chains of the same protein), so a random split can overestimate accuracy. A **sequence-identity-aware split** (e.g. clustering with CD-HIT or MMseqs2 first) would give a more realistic estimate.
+- Try other k values or combine several (k = 2–5), and compare with protein language-model embeddings (ESM).
